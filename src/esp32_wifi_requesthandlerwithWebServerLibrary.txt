@@ -1,0 +1,65 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <WebServer.h>
+
+const char *ssid = "beaver";
+const char *password = "beaversaregood";
+
+WebServer server(80);
+
+const int ledPin = 2; 
+
+// Function prototypes
+void handleRoot();
+void handleOn();
+void handleOff();
+
+void setup() {
+  Serial.begin(115200);
+
+  // Connect to WiFi
+  WiFi.softAP(ssid, password);
+  IPAddress IP = WiFi.softAPIP();
+  Serial.print("Access Point IP address: ");
+  Serial.println(IP);
+
+  // Initialize LED pin
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+
+  // Route for root / web page
+  server.on("/", HTTP_GET, handleRoot);
+  // Route to control LED
+  server.on("/on", HTTP_GET, handleOn);
+  server.on("/off", HTTP_GET, handleOff);
+
+  // Start server
+  server.begin();
+}
+
+void loop() {
+  server.handleClient();
+}
+
+void handleRoot() {
+  String webpage = "<!DOCTYPE html>";
+  webpage += "<html><head><title>ESP32 Web Server</title></head><body>";
+  webpage += "<h1>ESP32 Web Server</h1>";
+  webpage += "<button onclick=\"location.href='/on'\" style = 'font-size: 100px;'>Turn On LED</button>";
+  webpage += "<button onclick=\"location.href='/off'\" style = 'font-size: 100px;'>Turn Off LED</button>";
+  webpage += "</body></html>";
+  
+  server.send(200, "text/html", webpage);
+}
+
+void handleOn() {
+  digitalWrite(ledPin, HIGH);
+  server.sendHeader("Location", "/", true);
+  server.send(302, "text/plain", "");
+}
+
+void handleOff() {
+  digitalWrite(ledPin, LOW);
+  server.sendHeader("Location", "/", true);
+  server.send(302, "text/plain", "");
+}
